@@ -14,7 +14,9 @@ class User {
 
   static async findByEmail(email) {
     const query = `
-      SELECT * FROM users WHERE email = ?
+      SELECT id, name, email, created_at, updated_at
+      FROM users
+      WHERE email = ?
     `;
 
     const [rows] = await dbConnection.execute(query, [email]);
