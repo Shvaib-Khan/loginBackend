@@ -13,7 +13,8 @@ const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body ?? {};
 
   const cleanName = typeof name === "string" ? name.trim() : name;
-  const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : email;
+  const cleanEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : email;
 
   const validationErrors = validateUserRegistration({
     name: cleanName,
@@ -53,7 +54,8 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body ?? {};
 
-  const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : email;
+  const cleanEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : email;
 
   const validationErrors = validateUserLogin({
     email: cleanEmail,
