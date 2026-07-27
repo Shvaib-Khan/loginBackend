@@ -46,4 +46,31 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, foundUser, "User registered successfully"));
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email && !password) {
+    throw new ApiError(400, "Email and password is required");
+  }
+
+  const user = await User.findByEmail(email);
+
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+
+  const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(401, "Invalid credentials");
+  }
+
+  delete user.password;
+  delete user.refresh_token;
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, user, "User logged in successfully"));
+});
+
+export { registerUser, loginUser };
