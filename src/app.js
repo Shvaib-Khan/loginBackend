@@ -1,6 +1,7 @@
 import express from "express"
 import { errorHandler } from "./middlewares/error.middleware.js"
 import cors from "cors"
+import cookieParser from "cookie-parser"
 
 const app = express()
 
@@ -10,12 +11,13 @@ app.use(cors({
 }))
 
 app.use(express.json());
+app.use(cookieParser());
 
 
 import userRouter from './routes/user.route.js';
 
 app.use("/api/v1/users", userRouter)
-app.use('/api/vi/users', userRouter)
+
 
 app.get('/',(req,res)=>{
     res.send("This is home route")

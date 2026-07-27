@@ -1,7 +1,7 @@
 const errorHandler = (err, req, res, next) => {
     const statusCode = err.statusCode || 500;
 
-    if (statusCode === 500) {
+    if (statusCode === 500 || statusCode>=400) {
         console.error(err);
     }
 

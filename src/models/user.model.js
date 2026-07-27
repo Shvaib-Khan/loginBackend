@@ -1,4 +1,5 @@
 import {dbConnection} from "../config/db.js";
+import jwt from "jsonwebtoken";
 
 class User {
   static async create({ name, email, password }) {
@@ -24,8 +25,7 @@ class User {
 
   static async findById(id) {
     const query = `
-      SELECT id, name, email, created_at, updated_at
-      FROM users WHERE id = ?
+      SELECT * FROM users WHERE id = ?
     `;
 
     const [rows] = await dbConnection.execute(query, [id]);
@@ -76,6 +76,33 @@ class User {
             [id]
         );
     }
+
+    static generateAccessToken = function(user){
+        return jwt.sign(
+            {
+                id: User.id,
+                email: user.email,
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            {
+                expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+            }
+        )
+    }
+
+    static generateRefreshToken = function(user){
+        return jwt.sign(
+            {
+                id: user.id,
+                
+            },
+            process.env.REFRESH_TOKEN_SECRET,
+            {
+                expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+            }
+        )
+    }
+
 }
 
 export default User;
