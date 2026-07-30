@@ -1,5 +1,7 @@
 import express from "express"
+import { errorHandler } from "./middlewares/error.middleware.js"
 import cors from "cors"
+import cookieParser from "cookie-parser"
 
 const app = express()
 
@@ -8,19 +10,21 @@ app.use(cors({
     credentials: true
 }))
 
+app.use(express.json());
+app.use(cookieParser());
 
+
+import userRouter from './routes/user.route.js';
+
+app.use("/api/v1/users", userRouter)
 
 
 app.get('/',(req,res)=>{
     res.send("This is home route")
 })
 
-app.get('/greet', (req,res)=>{
-    res.send("How are you buddy")
-})
+//keep this middleware alwways in last
+app.use(errorHandler)
 
-app.get('/welcome', (req,res)=>{
-    res.send("Welcome to nodejs")
-})
 
 export {app}
