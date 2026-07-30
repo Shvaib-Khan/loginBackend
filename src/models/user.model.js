@@ -14,13 +14,13 @@ class User {
   }
 
   static async findByEmail(email) {
+
     const query = `
       SELECT * FROM users WHERE email = ?
     `;
-
     const [rows] = await dbConnection.execute(query, [email]);
-
     return rows[0];
+    
   }
 
   static async findById(id) {
@@ -80,7 +80,7 @@ class User {
     static generateAccessToken = function(user){
         return jwt.sign(
             {
-                id: User.id,
+                id: user.id,
                 email: user.email,
             },
             process.env.ACCESS_TOKEN_SECRET,

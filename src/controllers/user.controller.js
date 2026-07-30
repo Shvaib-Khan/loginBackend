@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import options from "../constants.js";
+import { cacheUserProfile, getCachedUserProfile } from "../utils/redis.util.js";
 
 const generateAccessAndRefereshTokens = async(user) =>{
     try {
@@ -125,6 +126,8 @@ const loginUser = asyncHandler(async (req, res)=>{
 
     delete loggedInUser.password;
     delete loggedInUser.refresh_token;
+
+    await cacheUserProfile(loggedInUser)
 
     return res
     .status(200)
