@@ -1,5 +1,13 @@
 import { dbConnection } from "../config/db.js";
 
+// 1. Create a list of errors that will NEVER be fixed by retrying
+const FATAL_ERRORS = [
+  "ER_ACCESS_DENIED_ERROR", // Wrong username or password
+  "ER_BAD_DB_ERROR", // Database name doesn't exist
+  "ER_DBACCESS_DENIED_ERROR", // User doesn't have permission for this DB
+  "ENOTFOUND", // Wrong host URL in .env
+];
+
 const connectWithRetry = async () => {
   while (true) {
     try {
@@ -9,7 +17,22 @@ const connectWithRetry = async () => {
       break;
     } catch (error) {
       console.log(`MySQL connection failed: ${error.message}`);
-      console.log("MySQL is not ready. Retrying in 3 seconds...");
+
+      // 2. Check if the error code is in our fatal list
+      if (FATAL_ERRORS.includes(error.code)) {
+        console.error(
+          `FATAL ERROR: Check your .env database credentials! (Code: ${error.code})`,
+        );
+        console.error(
+          "Shutting down the server because retrying will not fix this.",
+        );
+        process.exit(1); // 3. Kill the app immediately
+      }
+
+      // 4. If it's not a fatal error, it's probably a network drop. Keep retrying!
+      console.log(
+        "MySQL is not ready (Server down or booting up). Retrying in 3 seconds...",
+      );
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
