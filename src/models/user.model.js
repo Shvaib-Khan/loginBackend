@@ -1,4 +1,4 @@
-import {dbConnection} from "../config/db.js";
+import { dbConnection } from "../config/db.js";
 
 class User {
   static async create({ name, email, password }) {
@@ -33,49 +33,37 @@ class User {
     return rows[0];
   }
 
-  static async saveRefreshToken(id, refreshToken){
-
-        const query = `
+  static async saveRefreshToken(id, refreshToken) {
+    const query = `
             UPDATE users
             SET refresh_token = ?
             WHERE id = ?
         `;
 
-        await dbConnection.execute(
-            query,
-            [refreshToken,id]
-        );
-    }
+    await dbConnection.execute(query, [refreshToken, id]);
+  }
 
-    static async findByRefreshToken(refreshToken){
-
-        const query = `
+  static async findByRefreshToken(refreshToken) {
+    const query = `
             SELECT *
             FROM users
             WHERE refresh_token = ?
         `;
 
-        const [rows] = await dbConnection.execute(
-            query,
-            [refreshToken]
-        );
+    const [rows] = await dbConnection.execute(query, [refreshToken]);
 
-        return rows[0];
-    }
+    return rows[0];
+  }
 
-    static async removeRefreshToken(id){
-
-        const query = `
+  static async removeRefreshToken(id) {
+    const query = `
             UPDATE users
             SET refresh_token = NULL
             WHERE id = ?
         `;
 
-        await dbConnection.execute(
-            query,
-            [id]
-        );
-    }
+    await dbConnection.execute(query, [id]);
+  }
 }
 
 export default User;
