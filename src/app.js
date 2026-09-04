@@ -1,13 +1,12 @@
-import express from "express"
-import cors from "cors"
+import express from "express";
 
-const app = express()
+const app = express();
 
-app.use(cors({
-    origin: "*",
-    credentials: true
-}))
+app.get("/", (req, res) => {
+  res.send("This is home route");
+});
 
+<<<<<<< HEAD
 app.use(express.json());
 
 
@@ -20,3 +19,6 @@ app.get('/',(req,res)=>{
 
 
 export {app}
+=======
+export { app };
+>>>>>>> main
