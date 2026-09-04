@@ -8,14 +8,19 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon -r dotenv/config src/index.js",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "migrate": "knex migrate:latest --knexfile knexfile.cjs",
+    "migrate:rollback": "knex migrate:rollback --knexfile knexfile.cjs",
+    "migration:make": "knex migrate:make --knexfile knexfile.cjs"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mysql2": "^3.23.1",
-    "redis": "^6.1.0"
+    "knex": "^3.3.0",
+    "mysql2": "^3.24.3",
+    "redis": "^6.1.0",
+    "sequelize": "^6.37.8"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",

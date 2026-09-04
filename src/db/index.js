@@ -1,4 +1,4 @@
-import { dbConnection } from "../config/db.js";
+import { sequelize } from "../config/db.js";
 
 // 1. Create a list of errors that will NEVER be fixed by retrying
 const FATAL_ERRORS = [
@@ -11,28 +11,18 @@ const FATAL_ERRORS = [
 const connectWithRetry = async () => {
   while (true) {
     try {
-      const connection = await dbConnection.getConnection();
+      await sequelize.authenticate();
+
       console.log("Connected to MySQL server successfully");
-      connection.release();
       break;
     } catch (error) {
       console.log(`MySQL connection failed: ${error.message}`);
-
-      // 2. Check if the error code is in our fatal list
       if (FATAL_ERRORS.includes(error.code)) {
-        console.error(
-          `FATAL ERROR: Check your .env database credentials! (Code: ${error.code})`,
-        );
-        console.error(
-          "Shutting down the server because retrying will not fix this.",
-        );
-        process.exit(1); // 3. Kill the app immediately
+        console.error(`FATAL ERROR: Check your .env database credentials!`);
+        process.exit(1);
       }
+      console.log("MySQL is not ready. Retrying in 3 seconds...");
 
-      // 4. If it's not a fatal error, it's probably a network drop. Keep retrying!
-      console.log(
-        "MySQL is not ready (Server down or booting up). Retrying in 3 seconds...",
-      );
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
