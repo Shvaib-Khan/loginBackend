@@ -18,6 +18,7 @@ services:
       DB_PORT: ${DB_PORT}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
+      PORT: ${PORT:-8000}
 
   mysql:
     image: mysql:8
