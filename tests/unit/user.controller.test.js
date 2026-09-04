@@ -18,7 +18,6 @@ const { registerUser } =
 const User = (await import("../../src/models/user.model.js")).default;
 const bcrypt = (await import("bcryptjs")).default;
 
-// 4. Tiny helpers that build fake Express req/res objects
 const mockRequest = (body) => ({ body });
 
 const mockResponse = () => {
@@ -56,12 +55,10 @@ describe("registerUser Controller", () => {
   });
 
   it("should register a new user and return 201 with the created user (no password)", async () => {
-    // 1. No existing user, bcrypt hashes, create returns the new row
     User.findOne.mockResolvedValueOnce(null);
     bcrypt.hash.mockResolvedValueOnce("$2b$10$hashedPassword");
     User.create.mockResolvedValueOnce(createdUserRow);
 
-    // 2. Fire the request
     const req = mockRequest(validBody);
     const res = mockResponse();
     await registerUser(req, res);
@@ -96,7 +93,7 @@ describe("registerUser Controller", () => {
     );
   });
 
-  it("should return 400 when the name is missing", async () => {
+  it("should return 422 when the name is missing", async () => {
     const req = mockRequest({
       email: validBody.email,
       password: validBody.password,
@@ -104,7 +101,7 @@ describe("registerUser Controller", () => {
     const res = mockResponse();
     await registerUser(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(422);
     expect(res.json).toHaveBeenCalledWith({
       message: "All fields are required",
     });
@@ -113,7 +110,7 @@ describe("registerUser Controller", () => {
     expect(User.create).not.toHaveBeenCalled();
   });
 
-  it("should return 400 when the email is missing", async () => {
+  it("should return 422 when the email is missing", async () => {
     const req = mockRequest({
       name: validBody.name,
       password: validBody.password,
@@ -121,14 +118,14 @@ describe("registerUser Controller", () => {
     const res = mockResponse();
     await registerUser(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(422);
     expect(res.json).toHaveBeenCalledWith({
       message: "All fields are required",
     });
     expect(User.findOne).not.toHaveBeenCalled();
   });
 
-  it("should return 400 when the password is missing", async () => {
+  it("should return 422 when the password is missing", async () => {
     const req = mockRequest({
       name: validBody.name,
       email: validBody.email,
@@ -136,14 +133,14 @@ describe("registerUser Controller", () => {
     const res = mockResponse();
     await registerUser(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(422);
     expect(res.json).toHaveBeenCalledWith({
       message: "All fields are required",
     });
     expect(User.findOne).not.toHaveBeenCalled();
   });
 
-  it("should return 400 when a field is an empty string (edge case)", async () => {
+  it("should return 422 when a field is an empty string (edge case)", async () => {
     const req = mockRequest({
       name: "",
       email: validBody.email,
@@ -152,10 +149,159 @@ describe("registerUser Controller", () => {
     const res = mockResponse();
     await registerUser(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(422);
     expect(res.json).toHaveBeenCalledWith({
       message: "All fields are required",
     });
+  });
+
+  it("should return 422 when the name is only whitespace", async () => {
+    const req = mockRequest({
+      name: "   ",
+      email: validBody.email,
+      password: validBody.password,
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({ message: "Name cannot be empty" });
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("should return 422 when the name is shorter than 2 characters", async () => {
+    const req = mockRequest({
+      name: "A",
+      email: validBody.email,
+      password: validBody.password,
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Name must be at least 2 characters",
+    });
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("should return 422 when the name exceeds 100 characters", async () => {
+    const req = mockRequest({
+      name: "J".repeat(101),
+      email: validBody.email,
+      password: validBody.password,
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Name must be at most 100 characters",
+    });
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("should return 422 when the email is only whitespace", async () => {
+    const req = mockRequest({
+      name: validBody.name,
+      email: "   ",
+      password: validBody.password,
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({ message: "Email cannot be empty" });
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("should return 422 when the email format is invalid", async () => {
+    const req = mockRequest({
+      name: validBody.name,
+      email: "john@example",
+      password: validBody.password,
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Email must be a valid email address",
+    });
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("should return 422 when the email exceeds 255 characters", async () => {
+    const req = mockRequest({
+      name: validBody.name,
+      email: `${"a".repeat(250)}@example.com`,
+      password: validBody.password,
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Email must be at most 255 characters",
+    });
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("should return 422 when the password is shorter than 6 characters", async () => {
+    const req = mockRequest({
+      name: validBody.name,
+      email: validBody.email,
+      password: "12345",
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Password must be at least 6 characters",
+    });
+    expect(User.findOne).not.toHaveBeenCalled();
+    expect(bcrypt.hash).not.toHaveBeenCalled();
+  });
+
+  it("should return 422 when the password exceeds 72 characters", async () => {
+    const req = mockRequest({
+      name: validBody.name,
+      email: validBody.email,
+      password: "p".repeat(73),
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Password must be at most 72 characters",
+    });
+    expect(User.findOne).not.toHaveBeenCalled();
+  });
+
+  it("should trim whitespace around name and email before checking duplicates and creating", async () => {
+    User.findOne.mockResolvedValueOnce(null);
+    bcrypt.hash.mockResolvedValueOnce("$2b$10$hashedPassword");
+    User.create.mockResolvedValueOnce(createdUserRow);
+
+    const req = mockRequest({
+      name: "  John Doe  ",
+      email: "  john@example.com  ",
+      password: validBody.password,
+    });
+    const res = mockResponse();
+    await registerUser(req, res);
+
+    expect(User.findOne).toHaveBeenCalledWith({
+      where: { email: validBody.email },
+    });
+    expect(User.create).toHaveBeenCalledWith({
+      name: "John Doe",
+      email: "john@example.com",
+      password: "$2b$10$hashedPassword",
+    });
+    expect(res.status).toHaveBeenCalledWith(201);
   });
 
   it("should return 409 when the email is already registered", async () => {
