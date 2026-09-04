@@ -71,4 +71,36 @@ describe("Redis Connection", () => {
     // Ensure the app shuts itself down securely
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
+
+  // NEW EDGE CASE: Error is thrown without a message property
+  it("should still exit if the error has no message property", async () => {
+    // 1. Some drivers reject with a plain string instead of an Error object
+    redisClient.connect.mockRejectedValueOnce("Connection reset");
+
+    // 2. Run the code
+    await redisConnect();
+
+    // 3. Even though there is no `.message` to log, the app must still shut down
+    //    (error.message is undefined for a string rejection, so it is logged as undefined)
+    expect(redisClient.connect).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to connect redis server",
+      undefined,
+    );
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  // NEW EDGE CASE: Error with an empty message
+  it("should still exit if the error message is empty", async () => {
+    // 1. An Error with an empty message string
+    redisClient.connect.mockRejectedValueOnce(new Error(""));
+
+    // 2. Run the code
+    await redisConnect();
+
+    // 3. The connection still failed, so the app must shut down
+    expect(redisClient.connect).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith("Failed to connect redis server", "");
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
 });
