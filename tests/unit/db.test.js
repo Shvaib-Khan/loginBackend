@@ -74,4 +74,88 @@ describe("MySQL Database Connection", () => {
       ),
     );
   });
+
+  // NEW EDGE CASE: Database does not exist
+  it("should log a fatal error and exit if the database does not exist", async () => {
+    // 1. MySQL throws ER_BAD_DB_ERROR when the database name is wrong
+    const dbError = new Error("Unknown database 'login_db'");
+    dbError.code = "ER_BAD_DB_ERROR";
+
+    sequelize.authenticate
+      .mockRejectedValueOnce(dbError)
+      .mockResolvedValueOnce();
+
+    await connectWithRetry();
+
+    // 2. Retrying will never fix a missing database, so we exit immediately
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "FATAL ERROR: Check your .env database credentials!",
+      ),
+    );
+  });
+
+  // NEW EDGE CASE: Wrong host in .env
+  it("should log a fatal error and exit if the host cannot be resolved", async () => {
+    // 1. Node throws ENOTFOUND when the hostname does not resolve
+    const hostError = new Error("getaddrinfo ENOTFOUND db.example.com");
+    hostError.code = "ENOTFOUND";
+
+    sequelize.authenticate
+      .mockRejectedValueOnce(hostError)
+      .mockResolvedValueOnce();
+
+    await connectWithRetry();
+
+    // 2. A wrong host is fatal too, so the app must shut down
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "FATAL ERROR: Check your .env database credentials!",
+      ),
+    );
+  });
+
+  // NEW EDGE CASE: Generic error without a fatal code
+  it("should keep retrying (not exit) on a generic error without a fatal code", async () => {
+    // 1. A plain error with no `code` is assumed to be a temporary outage
+    sequelize.authenticate
+      .mockRejectedValueOnce(new Error("Connection refused"))
+      .mockResolvedValueOnce();
+
+    await connectWithRetry();
+
+    // 2. It retried and recovered, and never pulled the fire alarm
+    expect(sequelize.authenticate).toHaveBeenCalledTimes(2);
+    expect(exitSpy).not.toHaveBeenCalled();
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      "Connected to MySQL server successfully",
+    );
+  });
+
+  // NEW EDGE CASE: Multiple failures before recovery
+  // (two retries mean two 3-second waits, so this test needs a longer timeout)
+  it(
+    "should retry multiple times until the database becomes available",
+    async () => {
+      // 1. The database is down twice, then comes back up
+      sequelize.authenticate
+        .mockRejectedValueOnce(new Error("timeout"))
+        .mockRejectedValueOnce(new Error("timeout"))
+        .mockResolvedValueOnce();
+
+      await connectWithRetry();
+
+      // 2. Three attempts in total: two failures + one success
+      expect(sequelize.authenticate).toHaveBeenCalledTimes(3);
+      expect(exitSpy).not.toHaveBeenCalled();
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "MySQL is not ready. Retrying in 3 seconds...",
+        ),
+      );
+    },
+    10000,
+  );
 });
