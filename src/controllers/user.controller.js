@@ -9,7 +9,6 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ORM query: check if a user with this email already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(409).json({ message: "Email already exists" });
@@ -17,7 +16,6 @@ const registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ORM query: insert the new user (create returns the created row)
     const createdUser = await User.create({
       name,
       email,
@@ -40,4 +38,4 @@ const registerUser = async (req, res) => {
   }
 };
 
-export { registerUser };
+export { registerUser };

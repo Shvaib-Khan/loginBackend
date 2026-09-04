@@ -1,7 +1,5 @@
-// tests/unit/user.controller.test.js
 import { jest } from "@jest/globals";
 
-// 1. Mock the User model so registerUser never touches a real database
 jest.unstable_mockModule("../../src/models/user.model.js", () => ({
   default: {
     findOne: jest.fn(),
@@ -9,14 +7,12 @@ jest.unstable_mockModule("../../src/models/user.model.js", () => ({
   },
 }));
 
-// 2. Mock bcrypt so we never run real (slow) hashing in tests
 jest.unstable_mockModule("bcryptjs", () => ({
   default: {
     hash: jest.fn(),
   },
 }));
 
-// 3. Import the controller AFTER the mocks are registered
 const { registerUser } =
   await import("../../src/controllers/user.controller.js");
 const User = (await import("../../src/models/user.model.js")).default;
@@ -50,7 +46,6 @@ describe("registerUser Controller", () => {
   let consoleErrorSpy;
 
   beforeEach(() => {
-    // resetAllMocks also clears queued mockResolvedValueOnce values between tests
     jest.resetAllMocks();
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -71,22 +66,18 @@ describe("registerUser Controller", () => {
     const res = mockResponse();
     await registerUser(req, res);
 
-    // 3. ORM query used to look the email up
     expect(User.findOne).toHaveBeenCalledWith({
       where: { email: validBody.email },
     });
 
-    // 4. bcrypt hashes the password with 10 rounds
     expect(bcrypt.hash).toHaveBeenCalledWith(validBody.password, 10);
 
-    // 5. ORM query used to insert the user with the hashed password
     expect(User.create).toHaveBeenCalledWith({
       name: validBody.name,
       email: validBody.email,
       password: "$2b$10$hashedPassword",
     });
 
-    // 6. Response is 201 with the user payload
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({
       message: "User registered successfully",
@@ -99,7 +90,6 @@ describe("registerUser Controller", () => {
       },
     });
 
-    // 7. EDGE CASE: the password must NEVER leak into the response
     expect(res.json.mock.calls[0][0]).not.toHaveProperty("user.password");
     expect(JSON.stringify(res.json.mock.calls[0][0])).not.toContain(
       "$2b$10$hashedPassword",
@@ -119,7 +109,6 @@ describe("registerUser Controller", () => {
       message: "All fields are required",
     });
 
-    // Database must not be touched
     expect(User.findOne).not.toHaveBeenCalled();
     expect(User.create).not.toHaveBeenCalled();
   });
@@ -170,14 +159,12 @@ describe("registerUser Controller", () => {
   });
 
   it("should return 409 when the email is already registered", async () => {
-    // 1. The ORM query finds an existing user
     User.findOne.mockResolvedValueOnce({ id: 9, email: validBody.email });
 
     const req = mockRequest(validBody);
     const res = mockResponse();
     await registerUser(req, res);
 
-    // 2. Conflict response, and nothing else is executed
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith({ message: "Email already exists" });
     expect(bcrypt.hash).not.toHaveBeenCalled();
