@@ -13,44 +13,60 @@ export const validateUserRegistration = ({ name, email, password } = {}) => {
   const errors = [];
 
   if (!name && !email && !password) {
-    errors.push({ field: "name", message: "All fields are required" });
-    errors.push({ field: "email", message: "All fields are required" });
-    errors.push({ field: "password", message: "All fields are required" });
+    errors.push({ field: "name", message: "Name is required" });
+    errors.push({ field: "email", message: "Email is required" });
+    errors.push({ field: "password", message: "Password is required" });
     return errors;
   }
 
-  if (typeof name !== "string" || !name.trim()) {
-    errors.push({ field: "name", message: "Name cannot be empty" });
+  if (typeof name !== "string" || !name) {
+    errors.push({ field: "name", message: "Name is required" });
   } else {
-    const cleanName = name.trim();
-    if (cleanName.length < 2) {
-      errors.push({ field: "name", message: "Name must be at least 2 characters" });
+    if (name.length < 2) {
+      errors.push({
+        field: "name",
+        message: "Name must be at least 2 characters",
+      });
     }
-    if (cleanName.length > NAME_MAX_LENGTH) {
-      errors.push({ field: "name", message: `Name must be at most ${NAME_MAX_LENGTH} characters` });
+    if (name.length > NAME_MAX_LENGTH) {
+      errors.push({
+        field: "name",
+        message: `Name must be at most ${NAME_MAX_LENGTH} characters`,
+      });
     }
   }
 
-  if (typeof email !== "string" || !email.trim()) {
-    errors.push({ field: "email", message: "Email cannot be empty" });
+  if (typeof email !== "string" || !email) {
+    errors.push({ field: "email", message: "Email is required" });
   } else {
-    const cleanEmail = email.trim();
-    if (cleanEmail.length > EMAIL_MAX_LENGTH) {
-      errors.push({ field: "email", message: `Email must be at most ${EMAIL_MAX_LENGTH} characters` });
+    if (email.length > EMAIL_MAX_LENGTH) {
+      errors.push({
+        field: "email",
+        message: `Email must be at most ${EMAIL_MAX_LENGTH} characters`,
+      });
     }
-    if (!EMAIL_REGEX.test(cleanEmail)) {
-      errors.push({ field: "email", message: "Email must be a valid email address" });
+    if (!EMAIL_REGEX.test(email)) {
+      errors.push({
+        field: "email",
+        message: "Email must be a valid email address",
+      });
     }
   }
 
   if (typeof password !== "string") {
-    errors.push({ field: "password", message: "Password must be a string" });
+    errors.push({ field: "password", message: "Password is required" });
   } else {
     if (password.length < PASSWORD_MIN_LENGTH) {
-      errors.push({ field: "password", message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters` });
+      errors.push({
+        field: "password",
+        message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+      });
     }
     if (password.length > PASSWORD_MAX_LENGTH) {
-      errors.push({ field: "password", message: `Password must be at most ${PASSWORD_MAX_LENGTH} characters` });
+      errors.push({
+        field: "password",
+        message: `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
+      });
     }
   }
 

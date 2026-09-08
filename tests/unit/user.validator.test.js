@@ -19,10 +19,11 @@ describe("validateUserRegistration Validator", () => {
   });
 
   it("should return an empty array when name/email carry surrounding whitespace", () => {
+    // Controller trims before calling the validator, so pre-trim here to match the real call path.
     expect(
       validateUserRegistration({
-        name: "  John Doe  ",
-        email: "  john@example.com  ",
+        name: "  John Doe  ".trim(),
+        email: "  john@example.com  ".trim(),
         password: "secret123",
       }),
     ).toEqual([]);
@@ -31,52 +32,105 @@ describe("validateUserRegistration Validator", () => {
   it("should flag all fields as required when no fields are provided", () => {
     const result = validateUserRegistration({});
     expect(result).toHaveLength(3);
-    expect(result).toContainEqual({ field: "name", message: "All fields are required" });
-    expect(result).toContainEqual({ field: "email", message: "All fields are required" });
-    expect(result).toContainEqual({ field: "password", message: "All fields are required" });
+    expect(result).toContainEqual({
+      field: "name",
+      message: "Name is required",
+    });
+    expect(result).toContainEqual({
+      field: "email",
+      message: "Email is required",
+    });
+    expect(result).toContainEqual({
+      field: "password",
+      message: "Password is required",
+    });
   });
 
   it("should flag an undefined body as required for all fields", () => {
     const result = validateUserRegistration(undefined);
     expect(result).toHaveLength(3);
-    expect(result.some((e) => e.field === "name" && e.message === "All fields are required")).toBe(true);
-    expect(result.some((e) => e.field === "email" && e.message === "All fields are required")).toBe(true);
-    expect(result.some((e) => e.field === "password" && e.message === "All fields are required")).toBe(true);
+    expect(
+      result.some(
+        (e) => e.field === "name" && e.message === "Name is required",
+      ),
+    ).toBe(true);
+    expect(
+      result.some(
+        (e) => e.field === "email" && e.message === "Email is required",
+      ),
+    ).toBe(true);
+    expect(
+      result.some(
+        (e) => e.field === "password" && e.message === "Password is required",
+      ),
+    ).toBe(true);
   });
 
   it("should reject a whitespace-only name", () => {
-    const result = validateUserRegistration({ ...validBody, name: "   " });
-    expect(result).toContainEqual({ field: "name", message: "Name cannot be empty" });
+    // Controller trims before calling the validator, so an all-whitespace name arrives as "".
+    const result = validateUserRegistration({ ...validBody, name: "   ".trim() });
+    expect(result).toContainEqual({
+      field: "name",
+      message: "Name is required",
+    });
   });
 
   it("should reject a single-character name", () => {
     const result = validateUserRegistration({ ...validBody, name: "A" });
-    expect(result).toContainEqual({ field: "name", message: "Name must be at least 2 characters" });
+    expect(result).toContainEqual({
+      field: "name",
+      message: "Name must be at least 2 characters",
+    });
   });
 
   it("should reject a name longer than 100 characters", () => {
-    const result = validateUserRegistration({ ...validBody, name: "J".repeat(101) });
-    expect(result).toContainEqual({ field: "name", message: "Name must be at most 100 characters" });
+    const result = validateUserRegistration({
+      ...validBody,
+      name: "J".repeat(101),
+    });
+    expect(result).toContainEqual({
+      field: "name",
+      message: "Name must be at most 100 characters",
+    });
   });
 
   it("should accept a name of exactly 100 characters", () => {
-    const result = validateUserRegistration({ ...validBody, name: "J".repeat(100) });
+    const result = validateUserRegistration({
+      ...validBody,
+      name: "J".repeat(100),
+    });
     expect(result).toEqual([]);
   });
 
   it("should reject a whitespace-only email", () => {
-    const result = validateUserRegistration({ ...validBody, email: "   " });
-    expect(result).toContainEqual({ field: "email", message: "Email cannot be empty" });
+    // Controller trims before calling the validator, so an all-whitespace email arrives as "".
+    const result = validateUserRegistration({ ...validBody, email: "   ".trim() });
+    expect(result).toContainEqual({
+      field: "email",
+      message: "Email is required",
+    });
   });
 
   it("should reject an email without a domain extension", () => {
-    const result = validateUserRegistration({ ...validBody, email: "john@example" });
-    expect(result).toContainEqual({ field: "email", message: "Email must be a valid email address" });
+    const result = validateUserRegistration({
+      ...validBody,
+      email: "john@example",
+    });
+    expect(result).toContainEqual({
+      field: "email",
+      message: "Email must be a valid email address",
+    });
   });
 
   it("should reject an email without an @ symbol", () => {
-    const result = validateUserRegistration({ ...validBody, email: "john.example.com" });
-    expect(result).toContainEqual({ field: "email", message: "Email must be a valid email address" });
+    const result = validateUserRegistration({
+      ...validBody,
+      email: "john.example.com",
+    });
+    expect(result).toContainEqual({
+      field: "email",
+      message: "Email must be a valid email address",
+    });
   });
 
   it("should reject an email longer than 255 characters", () => {
@@ -84,7 +138,10 @@ describe("validateUserRegistration Validator", () => {
       ...validBody,
       email: `${"a".repeat(250)}@example.com`,
     });
-    expect(result).toContainEqual({ field: "email", message: "Email must be at most 255 characters" });
+    expect(result).toContainEqual({
+      field: "email",
+      message: "Email must be at most 255 characters",
+    });
   });
 
   it("should accept a 255-character email", () => {
@@ -96,26 +153,47 @@ describe("validateUserRegistration Validator", () => {
 
   it("should reject a non-string password", () => {
     const result = validateUserRegistration({ ...validBody, password: 123456 });
-    expect(result).toContainEqual({ field: "password", message: "Password must be a string" });
+    expect(result).toContainEqual({
+      field: "password",
+      message: "Password is required",
+    });
   });
 
   it("should reject a password shorter than 6 characters", () => {
-    const result = validateUserRegistration({ ...validBody, password: "12345" });
-    expect(result).toContainEqual({ field: "password", message: "Password must be at least 6 characters" });
+    const result = validateUserRegistration({
+      ...validBody,
+      password: "12345",
+    });
+    expect(result).toContainEqual({
+      field: "password",
+      message: "Password must be at least 6 characters",
+    });
   });
 
   it("should reject a password longer than 72 characters", () => {
-    const result = validateUserRegistration({ ...validBody, password: "p".repeat(73) });
-    expect(result).toContainEqual({ field: "password", message: "Password must be at most 72 characters" });
+    const result = validateUserRegistration({
+      ...validBody,
+      password: "p".repeat(73),
+    });
+    expect(result).toContainEqual({
+      field: "password",
+      message: "Password must be at most 72 characters",
+    });
   });
 
   it("should accept a password of exactly 6 characters", () => {
-    const result = validateUserRegistration({ ...validBody, password: "123456" });
+    const result = validateUserRegistration({
+      ...validBody,
+      password: "123456",
+    });
     expect(result).toEqual([]);
   });
 
   it("should accept a password of exactly 72 characters", () => {
-    const result = validateUserRegistration({ ...validBody, password: "p".repeat(72) });
+    const result = validateUserRegistration({
+      ...validBody,
+      password: "p".repeat(72),
+    });
     expect(result).toEqual([]);
   });
 

@@ -6,15 +6,19 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password } = req.body ?? {};
 
-  const validationErrors = validateUserRegistration({ name, email, password });
+  const cleanName = typeof name === "string" ? name.trim() : name;
+  const cleanEmail = typeof email === "string" ? email.trim() : email;
+
+  const validationErrors = validateUserRegistration({
+    name: cleanName,
+    email: cleanEmail,
+    password,
+  });
   if (validationErrors.length) {
     throw new ApiError(422, "Validation failed", validationErrors);
   }
-
-  const cleanName = name.trim();
-  const cleanEmail = email.trim();
 
   const existingUser = await User.findOne({ where: { email: cleanEmail } });
   if (existingUser) {
@@ -31,10 +35,10 @@ const registerUser = asyncHandler(async (req, res) => {
     password: hashedPassword,
   });
 
-  const foundUser = await User.findOne({ where: { email: cleanEmail } });
-  if (!foundUser) {
+  if (!createdUser) {
     throw new ApiError(500, "Something went wrong while registering user");
   }
+  const foundUser = createdUser.toJSON();
 
   delete foundUser.password;
   res
