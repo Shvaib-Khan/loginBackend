@@ -1,50 +1,49 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import { validateUserRegistration } from "../validators/user.validator.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
-const registerUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+const registerUser = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body ?? {};
 
-    const validationMessage = validateUserRegistration({
-      name,
-      email,
-      password,
-    });
-    if (validationMessage) {
-      return res.status(422).json({ message: validationMessage });
-    }
+  const cleanName = typeof name === "string" ? name.trim() : name;
+  const cleanEmail = typeof email === "string" ? email.trim() : email;
 
-    const cleanName = name.trim();
-    const cleanEmail = email.trim();
-
-    const existingUser = await User.findOne({ where: { email: cleanEmail } });
-    if (existingUser) {
-      return res.status(409).json({ message: "Email already exists" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const createdUser = await User.create({
-      name: cleanName,
-      email: cleanEmail,
-      password: hashedPassword,
-    });
-
-    return res.status(201).json({
-      message: "User registered successfully",
-      user: {
-        id: createdUser.id,
-        name: createdUser.name,
-        email: createdUser.email,
-        createdAt: createdUser.created_at,
-        updatedAt: createdUser.updated_at,
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+  const validationErrors = validateUserRegistration({
+    name: cleanName,
+    email: cleanEmail,
+    password,
+  });
+  if (validationErrors.length) {
+    throw new ApiError(422, "Validation failed", validationErrors);
   }
-};
+
+  const existingUser = await User.findOne({ where: { email: cleanEmail } });
+  if (existingUser) {
+    throw new ApiError(409, "Email already exists", [
+      { field: "email", message: "Email already exists" },
+    ]);
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const createdUser = await User.create({
+    name: cleanName,
+    email: cleanEmail,
+    password: hashedPassword,
+  });
+
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while registering user");
+  }
+  const foundUser = createdUser.toJSON();
+
+  delete foundUser.password;
+  res
+    .status(201)
+    .json(new ApiResponse(201, foundUser, "User registered successfully"));
+});
 
 export { registerUser };
