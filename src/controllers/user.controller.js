@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
-import { validateUserRegistration } from "../validators/user.validator.js";
+import {
+  validateUserRegistration,
+  validateUserLogin,
+} from "../validators/user.validator.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -47,13 +50,19 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body ?? {};
 
-  if (!email && !password) {
-    throw new ApiError(400, "Email and password is required");
+  const cleanEmail = typeof email === "string" ? email.trim() : email;
+
+  const validationErrors = validateUserLogin({
+    email: cleanEmail,
+    password,
+  });
+  if (validationErrors.length) {
+    throw new ApiError(422, "Validation failed", validationErrors);
   }
 
-  const user = await User.findByEmail(email);
+  const user = await User.findOne({ where: { email: cleanEmail } });
 
   if (!user) {
     throw new ApiError(404, "User does not exist");
@@ -65,12 +74,13 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid credentials");
   }
 
-  delete user.password;
-  delete user.refresh_token;
+  const sanitizedUser = user.toJSON();
+  delete sanitizedUser.password;
+  delete sanitizedUser.refresh_token;
 
   res
     .status(200)
-    .json(new ApiResponse(200, user, "User logged in successfully"));
+    .json(new ApiResponse(200, sanitizedUser, "User logged in successfully"));
 });
 
 export { registerUser, loginUser };
