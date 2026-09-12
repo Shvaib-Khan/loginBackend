@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import LoginAttempt from "../models/loginAttempt.model.js";
 import {
   validateUserRegistration,
   validateUserLogin,
@@ -12,7 +13,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body ?? {};
 
   const cleanName = typeof name === "string" ? name.trim() : name;
-  const cleanEmail = typeof email === "string" ? email.trim() : email;
+  const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : email;
 
   const validationErrors = validateUserRegistration({
     name: cleanName,
@@ -52,7 +53,7 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body ?? {};
 
-  const cleanEmail = typeof email === "string" ? email.trim() : email;
+  const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : email;
 
   const validationErrors = validateUserLogin({
     email: cleanEmail,
@@ -65,14 +66,35 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ where: { email: cleanEmail } });
 
   if (!user) {
-    throw new ApiError(404, "User does not exist");
+    await LoginAttempt.create({
+      email: cleanEmail,
+      ip_address: req.ip,
+      status: "FAILED",
+      reason: "User not found",
+    }).catch(() => {});
+
+    throw new ApiError(401, "Invalid email or password");
   }
 
   const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
   if (!isPasswordCorrect) {
-    throw new ApiError(401, "Invalid credentials");
+    await LoginAttempt.create({
+      email: cleanEmail,
+      ip_address: req.ip,
+      status: "FAILED",
+      reason: "Invalid password",
+    }).catch(() => {});
+
+    throw new ApiError(401, "Invalid email or password");
   }
+
+  await LoginAttempt.create({
+    email: cleanEmail,
+    ip_address: req.ip,
+    status: "SUCCESS",
+    reason: "Login successful",
+  }).catch(() => {});
 
   const sanitizedUser = user.toJSON();
   delete sanitizedUser.password;
