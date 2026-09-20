@@ -11,7 +11,7 @@ const LoginAttempt = sequelize.define(
     },
 
     email: {
-      type: DataTypes.STRING(255),
+      type: DataTypes.STRING(60),
       allowNull: false,
     },
 

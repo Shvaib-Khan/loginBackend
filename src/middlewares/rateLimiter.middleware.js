@@ -1,6 +1,10 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { redisClient } from "../config/redis.js";
+import {
+  RATE_LIMITER_WINDOW_MS,
+  RATE_LIMITER_MAX_ATTEMPTS,
+} from "../config/appConfig.js";
 
 let storePromise = null;
 let loginRateLimiter = null;
@@ -16,8 +20,8 @@ const getLoginRateLimiter = async () => {
     const store = await storePromise;
 
     loginRateLimiter = rateLimit({
-      windowMs: 60 * 1000,
-      limit: 5,
+      windowMs: RATE_LIMITER_WINDOW_MS,
+      limit: RATE_LIMITER_MAX_ATTEMPTS,
       standardHeaders: true,
       legacyHeaders: false,
       store,

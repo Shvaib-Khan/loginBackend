@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
-import LoginAttempt from "../models/loginAttempt.model.js";
 import {
   validateUserRegistration,
   validateUserLogin,
@@ -8,6 +7,7 @@ import {
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { recordLoginAttempt } from "../services/loginAttempt.service.js";
 
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body ?? {};
@@ -66,12 +66,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ where: { email: cleanEmail } });
 
   if (!user) {
-    await LoginAttempt.create({
-      email: cleanEmail,
-      ip_address: req.ip,
-      status: "FAILED",
-      reason: "User not found",
-    }).catch(() => {});
+    await recordLoginAttempt(cleanEmail, req.ip, "FAILED", "User not found");
 
     throw new ApiError(401, "Invalid email or password");
   }
@@ -79,22 +74,12 @@ const loginUser = asyncHandler(async (req, res) => {
   const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
   if (!isPasswordCorrect) {
-    await LoginAttempt.create({
-      email: cleanEmail,
-      ip_address: req.ip,
-      status: "FAILED",
-      reason: "Invalid password",
-    }).catch(() => {});
+    await recordLoginAttempt(cleanEmail, req.ip, "FAILED", "Invalid password");
 
     throw new ApiError(401, "Invalid email or password");
   }
 
-  await LoginAttempt.create({
-    email: cleanEmail,
-    ip_address: req.ip,
-    status: "SUCCESS",
-    reason: "Login successful",
-  }).catch(() => {});
+  await recordLoginAttempt(cleanEmail, req.ip, "SUCCESS", "Login successful");
 
   const sanitizedUser = user.toJSON();
   delete sanitizedUser.password;

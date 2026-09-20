@@ -1,6 +1,6 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const NAME_MAX_LENGTH = 100;
-export const EMAIL_MAX_LENGTH = 255;
+export const EMAIL_MAX_LENGTH = 60;
 export const PASSWORD_MIN_LENGTH = 6;
 // bcrypt ignores everything past 72 bytes, so cap the raw input there
 export const PASSWORD_MAX_LENGTH = 72;

@@ -138,20 +138,20 @@ describe("validateUserRegistration Validator", () => {
     });
   });
 
-  it("should reject an email longer than 255 characters", () => {
+  it("should reject an email longer than 60 characters", () => {
     const result = validateUserRegistration({
       ...validBody,
-      email: `${"a".repeat(246)}@example.com`,
+      email: `${"a".repeat(53)}@example.com`,
     });
     expect(result).toContainEqual({
       field: "email",
-      message: "Email must be at most 255 characters",
+      message: "Email must be at most 60 characters",
     });
   });
 
-  it("should accept a 255-character email", () => {
-    const email = `${"a".repeat(243)}@example.com`;
-    expect(email.length).toBe(255);
+  it("should accept a 60-character email", () => {
+    const email = "a".repeat(60 - "@example.com".length) + "@example.com";
+    expect(email.length).toBe(60);
     const result = validateUserRegistration({ ...validBody, email });
     expect(result).toEqual([]);
   });
@@ -291,14 +291,14 @@ describe("validateUserLogin Validator", () => {
     });
   });
 
-  it("should reject an email longer than 255 characters", () => {
+  it("should reject an email longer than 60 characters", () => {
     const result = validateUserLogin({
-      email: `${"a".repeat(246)}@example.com`,
+      email: `${"a".repeat(53)}@example.com`,
       password: "secret123",
     });
     expect(result).toContainEqual({
       field: "email",
-      message: "Email must be at most 255 characters",
+      message: "Email must be at most 60 characters",
     });
     // Should not also report the email format error when the length check already fired.
     expect(
@@ -306,9 +306,9 @@ describe("validateUserLogin Validator", () => {
     ).toBe(false);
   });
 
-  it("should accept a 255-character email", () => {
-    const email = `${"a".repeat(243)}@example.com`;
-    expect(email.length).toBe(255);
+  it("should accept a 60-character email", () => {
+    const email = "a".repeat(60 - "@example.com".length) + "@example.com";
+    expect(email.length).toBe(60);
     const result = validateUserLogin({ email, password: "secret123" });
     expect(result).toEqual([]);
   });
