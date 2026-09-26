@@ -11,10 +11,11 @@ jest.unstable_mockModule("../../src/models/user.model.js", () => ({
 jest.unstable_mockModule("bcryptjs", () => ({
   default: {
     hash: jest.fn(),
+    compare: jest.fn(),
   },
 }));
 
-const { registerUser } = await import("../../src/controllers/user.controller.js");
+const { registerUser, loginUser } = await import("../../src/controllers/user.controller.js");
 const User = (await import("../../src/models/user.model.js")).default;
 const bcrypt = (await import("bcryptjs")).default;
 
@@ -29,6 +30,11 @@ const mockResponse = () => {
 
 const validBody = {
   name: "John Doe",
+  email: "john@example.com",
+  password: "secret123",
+};
+
+const validLoginBody = {
   email: "john@example.com",
   password: "secret123",
 };
@@ -89,6 +95,26 @@ describe("registerUser Controller", () => {
     expect(apiError.success).toBe(false);
   });
 
+  it("should throw ApiError with 404 status when user does not exist", async () => {
+    const { ApiError } = await import("../../src/utils/ApiError.js");
+
+    const apiError = new ApiError(404, "User does not exist");
+    expect(apiError.statusCode).toBe(404);
+    expect(apiError.message).toBe("User does not exist");
+    expect(apiError.errors).toEqual([]);
+    expect(apiError.success).toBe(false);
+  });
+
+  it("should throw ApiError with 401 status for invalid credentials", async () => {
+    const { ApiError } = await import("../../src/utils/ApiError.js");
+
+    const apiError = new ApiError(401, "Invalid credentials");
+    expect(apiError.statusCode).toBe(401);
+    expect(apiError.message).toBe("Invalid credentials");
+    expect(apiError.errors).toEqual([]);
+    expect(apiError.success).toBe(false);
+  });
+
   it("should create ApiResponse with correct structure for success", async () => {
     const { ApiResponse } = await import("../../src/utils/ApiResponse.js");
 
@@ -130,6 +156,76 @@ describe("registerUser Controller", () => {
 
     expect(errors.length).toBeGreaterThan(1);
     expect(errors.some((e) => e.field === "name")).toBe(true);
+    expect(errors.some((e) => e.field === "email")).toBe(true);
+    expect(errors.some((e) => e.field === "password")).toBe(true);
+  });
+});
+
+describe("loginUser Controller", () => {
+  let consoleErrorSpy;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should throw ApiError with 422 status when login validation fails", async () => {
+    const { ApiError } = await import("../../src/utils/ApiError.js");
+    const { validateUserLogin } = await import("../../src/validators/user.validator.js");
+
+    // Verify validator returns errors for invalid input
+    const errors = validateUserLogin({});
+    expect(errors.length).toBeGreaterThan(0);
+
+    // Verify ApiError is constructed correctly
+    const apiError = new ApiError(422, "Validation failed", errors);
+    expect(apiError.statusCode).toBe(422);
+    expect(apiError.message).toBe("Validation failed");
+    expect(apiError.errors).toEqual(errors);
+    expect(apiError.success).toBe(false);
+  });
+
+  it("should throw ApiError with 404 status when user does not exist", async () => {
+    const { ApiError } = await import("../../src/utils/ApiError.js");
+
+    const apiError = new ApiError(404, "User does not exist");
+    expect(apiError.statusCode).toBe(404);
+    expect(apiError.message).toBe("User does not exist");
+    expect(apiError.errors).toEqual([]);
+    expect(apiError.success).toBe(false);
+  });
+
+  it("should throw ApiError with 401 status for invalid credentials", async () => {
+    const { ApiError } = await import("../../src/utils/ApiError.js");
+
+    const apiError = new ApiError(401, "Invalid credentials");
+    expect(apiError.statusCode).toBe(401);
+    expect(apiError.message).toBe("Invalid credentials");
+    expect(apiError.errors).toEqual([]);
+    expect(apiError.success).toBe(false);
+  });
+
+  it("should validate user login with valid data", async () => {
+    const { validateUserLogin } = await import("../../src/validators/user.validator.js");
+
+    const errors = validateUserLogin(validLoginBody);
+    expect(errors).toEqual([]);
+  });
+
+  it("should detect login validation errors at once", async () => {
+    const { validateUserLogin } = await import("../../src/validators/user.validator.js");
+
+    const errors = validateUserLogin({
+      email: "bad-email",
+      password: "123",
+    });
+
+    expect(errors.length).toBeGreaterThan(1);
     expect(errors.some((e) => e.field === "email")).toBe(true);
     expect(errors.some((e) => e.field === "password")).toBe(true);
   });

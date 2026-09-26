@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import { app } from "./app.js";
 import { connectWithRetry } from "./db/index.js";
 import { redisConnect } from "./redis/index.js";
+import { APP_PORT } from "./config/appConfig.js";
+import { startLoginAttemptCleanup, stopLoginAttemptCleanup } from "./jobs/loginAttemptCleanup.job.js";
 
 dotenv.config({
   path: "./.env",
@@ -11,8 +13,9 @@ async function startServer() {
   try {
     await connectWithRetry();
     await redisConnect();
-    app.listen(process.env.PORT || 3000, () => {
-      console.log(`Serves at http://localhost:${process.env.PORT}`);
+    startLoginAttemptCleanup();
+    app.listen(APP_PORT, () => {
+      console.log(`Serves at http://localhost:${APP_PORT}`);
     });
   } catch (error) {
     console.error("Error while starting the server:", error.message);
@@ -21,3 +24,23 @@ async function startServer() {
 }
 
 startServer();
+
+process.on("exit", () => {
+  stopLoginAttemptCleanup();
+});
+
+process.on("SIGINT", () => {
+  if (app.listening) {
+    app.close(() => {
+      process.exit(0);
+    });
+  }
+});
+
+process.on("SIGTERM", () => {
+  if (app.listening) {
+    app.close(() => {
+      process.exit(0);
+    });
+  }
+});

@@ -1,6 +1,6 @@
 import { sequelize } from "../config/db.js";
+import { DB_RETRY_DELAY_SECONDS } from "../config/appConfig.js";
 
-// 1. Create a list of errors that will NEVER be fixed by retrying
 const FATAL_ERRORS = [
   "ER_ACCESS_DENIED_ERROR", // Wrong username or password
   "ER_BAD_DB_ERROR", // Database name doesn't exist
@@ -21,9 +21,9 @@ const connectWithRetry = async () => {
         console.error(`FATAL ERROR: Check your .env database credentials!`);
         process.exit(1);
       }
-      console.log("MySQL is not ready. Retrying in 3 seconds...");
+      console.log(`MySQL is not ready. Retrying in ${DB_RETRY_DELAY_SECONDS} seconds...`);
 
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, DB_RETRY_DELAY_SECONDS * 1000));
     }
   }
 };
